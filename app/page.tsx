@@ -60,7 +60,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productsJsonLd) }}
       />
 
-      <nav className="site-nav" aria-label="Primary">
+      {/* HEADER_PLACEHOLDER */}
         <a href="/" className="logo" aria-label="Cafezista home">
           Cafezista<span>.</span>
         </a>
