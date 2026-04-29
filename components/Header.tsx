@@ -1,4 +1,10 @@
+'use client'
+
+import { useCart } from '@/lib/cart/CartContext'
+
 export default function Header() {
+  const { totalItems } = useCart()
+
   return (
     <nav className="site-nav" aria-label="Primary">
       <a href="/" className="logo" aria-label="Cafezista home">
@@ -14,7 +20,7 @@ export default function Header() {
         <a href="/search" aria-label="Search">Search</a>
         <a href="/account" aria-label="Login">Login</a>
         <a href="/cart" aria-label="Cart">
-          Cart<span className="cart-badge">0</span>
+          Cart<span className="cart-badge">{totalItems}</span>
         </a>
       </div>
     </nav>

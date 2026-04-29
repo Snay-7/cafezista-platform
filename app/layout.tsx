@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Fraunces, Inter } from 'next/font/google'
 import './globals.css'
+import { CartProvider } from '@/lib/cart/CartContext'
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -29,50 +30,19 @@ export const metadata: Metadata = {
     template: '%s \u2014 Cafezista',
   },
   description: SITE_DESCRIPTION,
-  keywords: [
-    'specialty coffee',
-    'London coffee roaster',
-    'Brazilian coffee',
-    'single origin coffee',
-    'coffee subscription',
-    'wholesale coffee London',
-    'Cerrado Mineiro',
-    'direct trade coffee',
-    'Cafezista',
-  ],
+  keywords: ['specialty coffee', 'London coffee roaster', 'Brazilian coffee', 'single origin coffee', 'coffee subscription', 'Cafezista'],
   authors: [{ name: 'Cafezista', url: SITE_URL }],
   creator: 'Cafezista',
   publisher: 'Cafezista',
   category: 'Food & Drink',
   alternates: { canonical: SITE_URL },
   openGraph: {
-    type: 'website',
-    locale: 'en_GB',
-    url: SITE_URL,
-    siteName: SITE_NAME,
-    title: 'Cafezista \u2014 Coffee from seed to table',
-    description: SITE_DESCRIPTION,
-    images: [
-      { url: '/og.jpg', width: 1200, height: 630, alt: 'Cafezista \u2014 specialty coffee roasted in London' },
-    ],
+    type: 'website', locale: 'en_GB', url: SITE_URL, siteName: SITE_NAME,
+    title: 'Cafezista \u2014 Coffee from seed to table', description: SITE_DESCRIPTION,
+    images: [{ url: '/og.jpg', width: 1200, height: 630, alt: 'Cafezista' }],
   },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Cafezista \u2014 Coffee from seed to table',
-    description: SITE_DESCRIPTION,
-    images: ['/og.jpg'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
+  twitter: { card: 'summary_large_image', title: 'Cafezista', description: SITE_DESCRIPTION, images: ['/og.jpg'] },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
   icons: { icon: '/favicon.ico' },
   formatDetection: { email: false, address: false, telephone: false },
 }
@@ -80,26 +50,19 @@ export const metadata: Metadata = {
 const organizationJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Cafezista',
-  url: SITE_URL,
-  logo: SITE_URL + '/logo.png',
-  description: SITE_DESCRIPTION,
-  email: 'Brew@cafezistacoffee.com',
-  sameAs: ['https://instagram.com/cafezista'],
+  name: 'Cafezista', url: SITE_URL, logo: SITE_URL + '/logo.png', description: SITE_DESCRIPTION,
+  email: 'Brew@cafezistacoffee.com', sameAs: ['https://instagram.com/cafezista'],
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={fraunces.variable + ' ' + inter.variable}>
       <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <CartProvider>{children}</CartProvider>
+      </body>
     </html>
   )
 }
