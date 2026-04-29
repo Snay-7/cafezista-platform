@@ -1,22 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Cafezista — Coffee from seed to table',
+  title: 'Cafezista \u2014 Coffee from seed to table',
   description:
     'Specialty coffee roasted in Bermondsey, London. From our family farm in Cerrado Mineiro and the world\u2019s most expressive single origins. Subscribe & save 15%.',
-  alternates: { canonical: 'https://cafezista.co' },
+  alternates: { canonical: 'https://cafezistacoffee.com' },
 }
 
 const COUNTRY_CODES: Record<string, string> = {
-  Brazil: 'BR',
-  Ethiopia: 'ET',
-  Colombia: 'CO',
-  Panama: 'PA',
-  Kenya: 'KE',
-  Guatemala: 'GT',
-  Indonesia: 'ID',
-  'Costa Rica': 'CR',
+  Brazil: 'BR', Ethiopia: 'ET', Colombia: 'CO', Panama: 'PA',
+  Kenya: 'KE', Guatemala: 'GT', Indonesia: 'ID', 'Costa Rica': 'CR',
 }
 
 const REGION_SHORT: Record<string, string> = {
@@ -60,24 +56,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productsJsonLd) }}
       />
 
-      {/* HEADER_PLACEHOLDER */}
-        <a href="/" className="logo" aria-label="Cafezista home">
-          Cafezista<span>.</span>
-        </a>
-        <div className="nav-center">
-          <a href="/subscribe">Subscribe</a>
-          <a href="/shop">Shop</a>
-          <a href="/wholesale">Wholesale</a>
-          <a href="/story">Story</a>
-        </div>
-        <div className="nav-right">
-          <a href="/search" aria-label="Search">Search</a>
-          <a href="/account" aria-label="Login">Login</a>
-          <a href="/cart" aria-label="Cart">
-            Cart<span className="cart-badge">0</span>
-          </a>
-        </div>
-      </nav>
+      <Header />
 
       <main>
         <section className="hero" aria-label="Hero">
@@ -198,20 +177,9 @@ export default async function HomePage() {
                       </div>
                       <div className="product-bag-brand">Cafezista.</div>
                       <div className="product-bag-meta">
-                        <div>
-                          <span>Process</span>
-                          <span>{product.process ? capitalize(product.process) : '\u2014'}</span>
-                        </div>
-                        <div>
-                          <span>Variety</span>
-                          <span>{product.variety ?? '\u2014'}</span>
-                        </div>
-                        <div>
-                          <span>Notes</span>
-                          <span>
-                            {product.tasting_notes ? product.tasting_notes.slice(0, 2).join(', ') : '\u2014'}
-                          </span>
-                        </div>
+                        <div><span>Process</span><span>{product.process ? capitalize(product.process) : '\u2014'}</span></div>
+                        <div><span>Variety</span><span>{product.variety ?? '\u2014'}</span></div>
+                        <div><span>Notes</span><span>{product.tasting_notes ? product.tasting_notes.slice(0, 2).join(', ') : '\u2014'}</span></div>
                       </div>
                     </div>
                     <div className="bookmark" aria-hidden="true"></div>
@@ -222,9 +190,7 @@ export default async function HomePage() {
                     <div className="product-meta">
                       <span className="product-meta-label">Tasting Notes.</span>
                       <span className="product-meta-label right">Origin.</span>
-                      <span className="product-meta-value">
-                        {product.tasting_notes?.join(', ') ?? '\u2014'}
-                      </span>
+                      <span className="product-meta-value">{product.tasting_notes?.join(', ') ?? '\u2014'}</span>
                       <span className="product-meta-value right">{product.origin_country}</span>
                     </div>
                     <div className="add-to-cart" role="button" tabIndex={0}>
@@ -276,47 +242,7 @@ export default async function HomePage() {
         </section>
       </main>
 
-      <footer className="site-footer">
-        <div className="footer-grid">
-          <div className="footer-brand">
-            <h3>Coffee, with <em>care.</em></h3>
-            <p>
-              Roasted in London. Sourced from the world. Served with the same attention
-              Vinicius&apos;s family taught him in the fields of Minas Gerais.
-            </p>
-          </div>
-          <div className="footer-col">
-            <h4>Shop</h4>
-            <ul>
-              <li><a href="/shop">All beans</a></li>
-              <li><a href="/subscribe">Subscriptions</a></li>
-              <li><a href="/shop?category=equipment">Equipment</a></li>
-              <li><a href="/shop?category=gift">Gift cards</a></li>
-            </ul>
-          </div>
-          <div className="footer-col">
-            <h4>Cafezista</h4>
-            <ul>
-              <li><a href="/story">Our story</a></li>
-              <li><a href="/wholesale">Wholesale</a></li>
-              <li><a href="/visit">Visit us</a></li>
-              <li><a href="/journal">Journal</a></li>
-            </ul>
-          </div>
-          <div className="footer-col">
-            <h4>Contact</h4>
-            <ul>
-              <li><a href="mailto:Brew@cafezistacoffee.com">Brew@cafezistacoffee.com</a></li>
-              <li><a href="https://instagram.com/cafezista" rel="noopener noreferrer" target="_blank">Instagram</a></li>
-              <li><a href="/help">Help &amp; FAQ</a></li>
-            </ul>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <span>&copy; Cafezista {new Date().getFullYear()}. All rights reserved.</span>
-          <span>Made in London &middot; Grown in Brazil</span>
-        </div>
-      </footer>
+      <Footer />
     </>
   )
 }
