@@ -29,7 +29,6 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const params = await searchParams
   const supabase = await createClient()
 
-  // Build query with filters
   let query = supabase
     .from('products')
     .select('id, slug, name, subtitle, origin_country, region, process, variety, tasting_notes, bag_color, brew_method, is_featured')
@@ -40,7 +39,6 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   if (params.process) query = query.eq('process', params.process)
   if (params.note) query = query.contains('tasting_notes', [params.note])
 
-  // Sort
   const sort = params.sort ?? 'featured'
   if (sort === 'a-z') query = query.order('name', { ascending: true })
   else if (sort === 'origin') query = query.order('origin_country', { ascending: true })
@@ -48,7 +46,6 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   const { data: products } = await query
 
-  // Get all unique filter options from full dataset (for sidebar)
   const { data: allProducts } = await supabase
     .from('products')
     .select('origin_country, brew_method, process, tasting_notes')
@@ -61,12 +58,11 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     new Set((allProducts ?? []).flatMap(p => p.tasting_notes ?? []))
   ).sort()
 
-  // Active filter count for pills
-  const activeFilters: { label: string; key: string; value: string }[] = []
-  if (params.origin) activeFilters.push({ label: params.origin, key: 'origin', value: params.origin })
-  if (params.brew) activeFilters.push({ label: capitalize(params.brew), key: 'brew', value: params.brew })
-  if (params.process) activeFilters.push({ label: capitalize(params.process), key: 'process', value: params.process })
-  if (params.note) activeFilters.push({ label: params.note, key: 'note', value: params.note })
+  const activeFilters: { label: string; key: string }[] = []
+  if (params.origin) activeFilters.push({ label: params.origin, key: 'origin' })
+  if (params.brew) activeFilters.push({ label: capitalize(params.brew), key: 'brew' })
+  if (params.process) activeFilters.push({ label: capitalize(params.process), key: 'process' })
+  if (params.note) activeFilters.push({ label: params.note, key: 'note' })
 
   function buildUrl(overrides: Record<string, string | undefined>) {
     const u = new URLSearchParams()
@@ -91,7 +87,6 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         </section>
 
         <div className="shop-layout">
-
           <aside className="shop-filters" aria-label="Filters">
             <div className="filter-group">
               <h3>Origin</h3>
@@ -169,22 +164,12 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
                 )}
               </div>
 
-              <form className="shop-sort" method="get">
-                {Object.entries(params).filter(([k]) => k !== 'sort').map(([k, v]) =>
-                  v ? <input key={k} type="hidden" name={k} value={v} /> : null
-                )}
-                <label htmlFor="sort">Sort.</label>
-                <select id="sort" name="sort" defaultValue={sort} onChange={(e) => {
-                  if (typeof window !== 'undefined') {
-                    e.currentTarget.form?.submit()
-                  }
-                }}>
-                  <option value="featured">Featured</option>
-                  <option value="a-z">A &ndash; Z</option>
-                  <option value="origin">By origin</option>
-                </select>
-                <noscript><button type="submit">Apply</button></noscript>
-              </form>
+              <div className="shop-sort">
+                <span className="sort-label">Sort.</span>
+                <a href={buildUrl({ sort: undefined })} className={sort === 'featured' ? 'active' : ''}>Featured</a>
+                <a href={buildUrl({ sort: 'a-z' })} className={sort === 'a-z' ? 'active' : ''}>A&ndash;Z</a>
+                <a href={buildUrl({ sort: 'origin' })} className={sort === 'origin' ? 'active' : ''}>Origin</a>
+              </div>
             </div>
 
             <div className="shop-grid">

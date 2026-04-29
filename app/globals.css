@@ -251,3 +251,10 @@ nav.site-nav a.logo::after { content: ''; }
   .shop-grid { grid-template-columns: 1fr; }
   .shop-toolbar { flex-direction: column; align-items: flex-start; }
 }
+
+/* Sort link styles (replaces select) */
+.shop-sort { display: flex; align-items: center; gap: 16px; font-size: 13px; }
+.shop-sort .sort-label { font-family: var(--font-fraunces); color: var(--espresso-soft); }
+.shop-sort a { color: var(--espresso-soft); padding-bottom: 2px; transition: color 0.2s; }
+.shop-sort a:hover { color: var(--terracotta); }
+.shop-sort a.active { color: var(--espresso); border-bottom: 1px solid var(--espresso); }
