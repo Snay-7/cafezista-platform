@@ -1,296 +1,232 @@
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import BuyControls from '@/components/BuyControls'
-import FlavourPentagon from '@/components/FlavourPentagon'
 import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Shop \u2014 All coffees',
+  description:
+    'Browse our full range of single-origin specialty coffees, roasted in London. Filter by origin, brew method, process, and tasting notes.',
+  alternates: { canonical: 'https://cafezistacoffee.com/shop' },
+}
 
 const COUNTRY_CODES: Record<string, string> = {
   Brazil: 'BR', Ethiopia: 'ET', Colombia: 'CO', Panama: 'PA',
   Kenya: 'KE', Guatemala: 'GT', Indonesia: 'ID', 'Costa Rica': 'CR',
 }
 
-const BREW_GUIDES: Record<string, { method: string; ratio: string; grind: string; time: string; steps: string[] }[]> = {
-  espresso: [{
-    method: 'Espresso',
-    ratio: '18g in : 36g out',
-    grind: 'Fine',
-    time: '28-32 seconds',
-    steps: [
-      'Dose 18g of finely ground coffee into your portafilter.',
-      'Distribute and tamp evenly with 30lb pressure.',
-      'Pull a 36g shot in 28-32 seconds.',
-      'Look for steady honey-coloured streams that turn pale at the end.',
-    ],
-  }],
-  filter: [{
-    method: 'V60',
-    ratio: '15g coffee : 250g water',
-    grind: 'Medium-fine',
-    time: '3:00 total',
-    steps: [
-      'Rinse a paper filter with hot water and discard.',
-      'Add 15g of medium-fine ground coffee.',
-      'Bloom with 45g of water at 94\u00b0C for 30 seconds.',
-      'Pour in 3 stages: to 100g (1:00), to 175g (1:45), to 250g (2:30).',
-      'Total brew time: ~3:00 minutes.',
-    ],
-  }, {
-    method: 'AeroPress',
-    ratio: '14g coffee : 220g water',
-    grind: 'Medium',
-    time: '2:00 total',
-    steps: [
-      'Set up inverted with rinsed paper filter.',
-      'Add 14g of medium ground coffee.',
-      'Pour 220g of water at 88\u00b0C.',
-      'Stir for 10 seconds, steep 1:30.',
-      'Flip and press over 30 seconds.',
-    ],
-  }],
-  omni: [{
-    method: 'Cafeti\u00e8re',
-    ratio: '30g coffee : 500g water',
-    grind: 'Coarse',
-    time: '4:00 total',
-    steps: [
-      'Add 30g of coarsely ground coffee to a 500ml French press.',
-      'Pour 500g of water just off the boil.',
-      'Stir gently, place lid (do not plunge).',
-      'Wait 4 minutes. Plunge slowly. Decant immediately.',
-    ],
-  }, {
-    method: 'V60',
-    ratio: '15g coffee : 250g water',
-    grind: 'Medium-fine',
-    time: '3:00 total',
-    steps: [
-      'Rinse a paper filter with hot water and discard.',
-      'Add 15g of medium-fine ground coffee.',
-      'Bloom with 45g of water at 94\u00b0C for 30 seconds.',
-      'Pour in 3 stages to 250g total.',
-    ],
-  }],
+interface ShopPageProps {
+  searchParams: Promise<{
+    origin?: string
+    brew?: string
+    process?: string
+    note?: string
+    sort?: string
+  }>
 }
 
-interface PageProps { params: Promise<{ slug: string }> }
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params
-  const supabase = await createClient()
-  const { data: product } = await supabase.from('products').select('name, subtitle, origin_country, region, tasting_notes').eq('slug', slug).single()
-  if (!product) return { title: 'Coffee not found' }
-  const tn = product.tasting_notes?.join(', ') ?? ''
-  return {
-    title: `${product.name} \u2014 ${product.origin_country}`,
-    description: `${product.subtitle}. ${tn}. Single-origin specialty coffee from ${product.region ?? product.origin_country}, roasted in London.`,
-    alternates: { canonical: `https://cafezistacoffee.com/shop/${slug}` },
-  }
-}
-
-export default async function ProductPage({ params }: PageProps) {
-  const { slug } = await params
+export default async function ShopPage({ searchParams }: ShopPageProps) {
+  const params = await searchParams
   const supabase = await createClient()
 
-  const { data: product } = await supabase
+  let query = supabase
     .from('products')
-    .select('*')
-    .eq('slug', slug)
+    .select('id, slug, name, subtitle, origin_country, region, process, variety, tasting_notes, bag_color, brew_method, is_featured')
     .eq('is_active', true)
-    .single()
 
-  if (!product) notFound()
+  if (params.origin) query = query.eq('origin_country', params.origin)
+  if (params.brew) query = query.eq('brew_method', params.brew)
+  if (params.process) query = query.eq('process', params.process)
+  if (params.note) query = query.contains('tasting_notes', [params.note])
 
-  const { data: variants } = await supabase
-    .from('product_variants')
-    .select('id, size_g, price_pence')
-    .eq('product_id', product.id)
-    .order('size_g', { ascending: true })
+  const sort = params.sort ?? 'featured'
+  if (sort === 'a-z') query = query.order('name', { ascending: true })
+  else if (sort === 'origin') query = query.order('origin_country', { ascending: true })
+  else query = query.order('is_featured', { ascending: false }).order('name', { ascending: true })
 
-  const { data: related } = await supabase
+  const { data: products } = await query
+
+  const { data: allProducts } = await supabase
     .from('products')
-    .select('id, slug, name, origin_country, region, tasting_notes, bag_color, brew_method')
+    .select('origin_country, brew_method, process, tasting_notes')
     .eq('is_active', true)
-    .neq('id', product.id)
-    .limit(3)
 
-  const code = COUNTRY_CODES[product.origin_country] ?? ''
-  const bagClass = `bag-${product.bag_color ?? 'cream'}`
-  const brewKey = product.brew_method ?? 'omni'
-  const guides = BREW_GUIDES[brewKey] ?? BREW_GUIDES.omni
+  const origins = Array.from(new Set((allProducts ?? []).map(p => p.origin_country))).sort()
+  const brews = Array.from(new Set((allProducts ?? []).map(p => p.brew_method).filter(Boolean))) as string[]
+  const processes = Array.from(new Set((allProducts ?? []).map(p => p.process).filter(Boolean))) as string[]
+  const notes = Array.from(
+    new Set((allProducts ?? []).flatMap(p => p.tasting_notes ?? []))
+  ).sort()
 
-  const productJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.subtitle,
-    category: 'Coffee',
-    brand: { '@type': 'Brand', name: 'Cafezista' },
-    offers: (variants ?? []).map(v => ({
-      '@type': 'Offer',
-      price: (v.price_pence / 100).toFixed(2),
-      priceCurrency: 'GBP',
-      availability: 'https://schema.org/InStock',
-    })),
+  const activeFilters: { label: string; key: string }[] = []
+  if (params.origin) activeFilters.push({ label: params.origin, key: 'origin' })
+  if (params.brew) activeFilters.push({ label: capitalize(params.brew), key: 'brew' })
+  if (params.process) activeFilters.push({ label: capitalize(params.process), key: 'process' })
+  if (params.note) activeFilters.push({ label: params.note, key: 'note' })
+
+  function buildUrl(overrides: Record<string, string | undefined>) {
+    const u = new URLSearchParams()
+    const merged = { ...params, ...overrides }
+    Object.entries(merged).forEach(([k, v]) => { if (v) u.set(k, v) })
+    const qs = u.toString()
+    return qs ? `/shop?${qs}` : '/shop'
   }
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <Header />
 
-      <main className="product-page">
-        <nav className="breadcrumb" aria-label="Breadcrumb">
-          <a href="/shop">Shop</a>
-          <span>/</span>
-          <a href={`/shop?origin=${encodeURIComponent(product.origin_country)}`}>{product.origin_country}</a>
-          <span>/</span>
-          <span aria-current="page">{product.name}</span>
-        </nav>
-
-        <section className="product-hero">
-          <div className="product-hero-visual">
-            <div className={`product-bag-large ${bagClass}`} aria-hidden="true">
-              <div className="product-bag-label">
-                <span>{product.region ?? product.origin_country}.</span>
-                <span>{code}</span>
-              </div>
-              <div className="product-bag-brand">Cafezista.</div>
-              <div className="product-bag-meta">
-                <div><span>Process</span><span>{capitalize(product.process)}</span></div>
-                <div><span>Variety</span><span>{product.variety ?? '\u2014'}</span></div>
-                <div><span>Altitude</span><span>{product.altitude_m ? product.altitude_m + 'm' : '\u2014'}</span></div>
-                <div><span>Roast</span><span>{capitalize(product.roast_level ?? 'medium')}</span></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="product-hero-info">
-            <p className="product-eyebrow">{product.origin_country} &middot; {product.region}</p>
-            <h1>{product.name}.</h1>
-            <p className="product-subtitle">{product.subtitle}</p>
-            <ul className="product-notes">
-              {(product.tasting_notes ?? []).map((n: string) => <li key={n}>{n}</li>)}
-            </ul>
-
-            <BuyControls
-              productId={product.id}
-              slug={product.slug}
-              name={product.name}
-              bagColor={product.bag_color ?? 'cream'}
-              variants={variants ?? []}
-            />
-          </div>
+      <main className="shop-page">
+        <section className="shop-hero">
+          <p className="shop-eyebrow">&mdash; The full menu.</p>
+          <h1>All coffees.</h1>
+          <p className="shop-sub">
+            Twelve single origins, roasted in small batches at our Bermondsey roastery.
+            From the everyday espresso to the once-in-a-while gesha.
+          </p>
         </section>
 
-        <section className="origin-story">
-          <div className="origin-label">&mdash; The origin.</div>
-          <div className="origin-content">
-            <h2>From <em>{product.region ?? product.origin_country}</em>, with intent.</h2>
-            <p>
-              {product.subtitle}. Sourced directly from {product.producer ?? 'a trusted partner farm'}, this {product.process} coffee
-              expresses the character of {product.region ?? product.origin_country}{product.altitude_m ? ` at ${product.altitude_m}m above sea level` : ''}.
-            </p>
-            <dl className="origin-spec">
-              <div><dt>Producer</dt><dd>{product.producer ?? '\u2014'}</dd></div>
-              <div><dt>Variety</dt><dd>{product.variety ?? '\u2014'}</dd></div>
-              <div><dt>Process</dt><dd>{capitalize(product.process)}</dd></div>
-              <div><dt>Altitude</dt><dd>{product.altitude_m ? product.altitude_m + 'm' : '\u2014'}</dd></div>
-              <div><dt>Roast</dt><dd>{capitalize(product.roast_level ?? 'medium')}</dd></div>
-              <div><dt>Best for</dt><dd>{capitalize(product.brew_method ?? 'omni')}</dd></div>
-            </dl>
-          </div>
-        </section>
-
-        <section className="flavour-section">
-          <div className="flavour-label">&mdash; The taste.</div>
-          <div className="flavour-content">
-            <div className="flavour-pentagon-wrap">
-              <FlavourPentagon
-                acidity={product.acidity ?? 3}
-                body={product.body ?? 3}
-                sweetness={product.sweetness ?? 3}
-                bitterness={product.bitterness ?? 3}
-                aftertaste={product.aftertaste ?? 3}
-              />
-            </div>
-            <div className="flavour-text">
-              <h2>A <em>balanced</em> profile.</h2>
-              <p>
-                Each cup delivers a measured interplay across the five core dimensions. Use this as a guide
-                to anticipate what you&apos;ll find in your brew &mdash; and where this coffee sits compared to others in our menu.
-              </p>
-              <ul className="flavour-list">
-                <li><span>Acidity</span><strong>{product.acidity ?? 3}/5</strong></li>
-                <li><span>Body</span><strong>{product.body ?? 3}/5</strong></li>
-                <li><span>Sweetness</span><strong>{product.sweetness ?? 3}/5</strong></li>
-                <li><span>Bitterness</span><strong>{product.bitterness ?? 3}/5</strong></li>
-                <li><span>Aftertaste</span><strong>{product.aftertaste ?? 3}/5</strong></li>
+        <div className="shop-layout">
+          <aside className="shop-filters" aria-label="Filters">
+            <div className="filter-group">
+              <h3>Origin</h3>
+              <ul>
+                {origins.map(o => (
+                  <li key={o}>
+                    <a href={buildUrl({ origin: params.origin === o ? undefined : o })}
+                       className={params.origin === o ? 'active' : ''}>
+                      {o}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
-          </div>
-        </section>
 
-        <section className="brew-guide">
-          <div className="brew-label">&mdash; How to brew.</div>
-          <div className="brew-content">
-            <h2>Brewing <em>{product.name}.</em></h2>
-            <p className="brew-intro">
-              Recipes calibrated to bring out the best of this coffee&apos;s character.
-            </p>
-            <div className="brew-cards">
-              {guides.map(g => (
-                <div key={g.method} className="brew-card">
-                  <h3>{g.method}.</h3>
-                  <dl className="brew-recipe">
-                    <div><dt>Ratio</dt><dd>{g.ratio}</dd></div>
-                    <div><dt>Grind</dt><dd>{g.grind}</dd></div>
-                    <div><dt>Time</dt><dd>{g.time}</dd></div>
-                  </dl>
-                  <ol className="brew-steps">
-                    {g.steps.map((s, i) => <li key={i}>{s}</li>)}
-                  </ol>
-                </div>
-              ))}
+            <div className="filter-group">
+              <h3>Brew method</h3>
+              <ul>
+                {brews.map(b => (
+                  <li key={b}>
+                    <a href={buildUrl({ brew: params.brew === b ? undefined : b })}
+                       className={params.brew === b ? 'active' : ''}>
+                      {capitalize(b)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
-        </section>
 
-        <section className="related">
-          <header className="related-header">
-            <h2>You may also like.</h2>
-            <a href="/shop" className="view-all">All coffees &rarr;</a>
-          </header>
-          <div className="related-grid">
-            {(related ?? []).map(r => {
-              const rcode = COUNTRY_CODES[r.origin_country] ?? ''
-              const rbag = `bag-${r.bag_color ?? 'cream'}`
-              const rbrew = r.brew_method ? capitalize(r.brew_method) : 'Filter'
-              return (
-                <a key={r.id} href={`/shop/${r.slug}`} className="product-card">
-                  <div className="product-image">
-                    <div className="product-tags"><strong>Brew.</strong> {rbrew}</div>
-                    <div className={`product-bag ${rbag}`} aria-hidden="true">
-                      <div className="product-bag-label"><span>{r.region ?? r.origin_country}.</span><span>{rcode}</span></div>
-                      <div className="product-bag-brand">Cafezista.</div>
-                    </div>
-                    <div className="bookmark" aria-hidden="true"></div>
+            <div className="filter-group">
+              <h3>Process</h3>
+              <ul>
+                {processes.map(p => (
+                  <li key={p}>
+                    <a href={buildUrl({ process: params.process === p ? undefined : p })}
+                       className={params.process === p ? 'active' : ''}>
+                      {capitalize(p)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="filter-group">
+              <h3>Tasting notes</h3>
+              <ul>
+                {notes.slice(0, 12).map(n => (
+                  <li key={n}>
+                    <a href={buildUrl({ note: params.note === n ? undefined : n })}
+                       className={params.note === n ? 'active' : ''}>
+                      {n}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {activeFilters.length > 0 && (
+              <a href="/shop" className="clear-filters">Clear all filters</a>
+            )}
+          </aside>
+
+          <div className="shop-main">
+            <div className="shop-toolbar">
+              <div className="shop-results">
+                <span className="results-count">{products?.length ?? 0} coffees</span>
+                {activeFilters.length > 0 && (
+                  <div className="filter-pills">
+                    {activeFilters.map(f => (
+                      <a key={f.key} href={buildUrl({ [f.key]: undefined })} className="pill">
+                        {f.label} <span aria-hidden="true">&times;</span>
+                      </a>
+                    ))}
                   </div>
-                  <div className="product-info">
-                    <h3>{r.name}.</h3>
-                    <div className="product-meta">
-                      <span className="product-meta-label">Tasting Notes.</span>
-                      <span className="product-meta-label right">Origin.</span>
-                      <span className="product-meta-value">{r.tasting_notes?.join(', ') ?? '\u2014'}</span>
-                      <span className="product-meta-value right">{r.origin_country}</span>
+                )}
+              </div>
+
+              <div className="shop-sort">
+                <span className="sort-label">Sort.</span>
+                <a href={buildUrl({ sort: undefined })} className={sort === 'featured' ? 'active' : ''}>Featured</a>
+                <a href={buildUrl({ sort: 'a-z' })} className={sort === 'a-z' ? 'active' : ''}>A&ndash;Z</a>
+                <a href={buildUrl({ sort: 'origin' })} className={sort === 'origin' ? 'active' : ''}>Origin</a>
+              </div>
+            </div>
+
+            <div className="shop-grid">
+              {(products ?? []).map(product => {
+                const code = COUNTRY_CODES[product.origin_country] ?? ''
+                const bagClass = `bag-${product.bag_color ?? 'cream'}`
+                const brewLabel = product.brew_method ? capitalize(product.brew_method) : 'Filter'
+
+                return (
+                  <a key={product.id} href={`/shop/${product.slug}`} className="product-card">
+                    <div className="product-image">
+                      <div className="product-tags">
+                        <strong>Brew.</strong> {brewLabel}
+                      </div>
+                      {product.is_featured && (
+                        <div className="product-fav">House favourite.</div>
+                      )}
+                      <div className={`product-bag ${bagClass}`} aria-hidden="true">
+                        <div className="product-bag-label">
+                          <span>{product.region ?? product.origin_country}.</span>
+                          <span>{code}</span>
+                        </div>
+                        <div className="product-bag-brand">Cafezista.</div>
+                        <div className="product-bag-meta">
+                          <div><span>Process</span><span>{product.process ? capitalize(product.process) : '\u2014'}</span></div>
+                          <div><span>Variety</span><span>{product.variety ?? '\u2014'}</span></div>
+                          <div><span>Notes</span><span>{product.tasting_notes ? product.tasting_notes.slice(0, 2).join(', ') : '\u2014'}</span></div>
+                        </div>
+                      </div>
+                      <div className="bookmark" aria-hidden="true"></div>
                     </div>
-                  </div>
-                </a>
-              )
-            })}
+
+                    <div className="product-info">
+                      <h3>{product.name}.</h3>
+                      <div className="product-meta">
+                        <span className="product-meta-label">Tasting Notes.</span>
+                        <span className="product-meta-label right">Origin.</span>
+                        <span className="product-meta-value">{product.tasting_notes?.join(', ') ?? '\u2014'}</span>
+                        <span className="product-meta-value right">{product.origin_country}</span>
+                      </div>
+                      <div className="add-to-cart" role="button" tabIndex={0}>
+                        Add to cart <span className="plus">+</span>
+                      </div>
+                    </div>
+                  </a>
+                )
+              })}
+            </div>
+
+            {(products?.length ?? 0) === 0 && (
+              <div className="shop-empty">
+                <p>No coffees match those filters.</p>
+                <a href="/shop" className="btn-primary">Clear filters</a>
+              </div>
+            )}
           </div>
-        </section>
+        </div>
       </main>
 
       <Footer />
@@ -298,7 +234,6 @@ export default async function ProductPage({ params }: PageProps) {
   )
 }
 
-function capitalize(s: string | null | undefined): string {
-  if (!s) return ''
+function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
