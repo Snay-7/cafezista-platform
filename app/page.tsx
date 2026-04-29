@@ -1,195 +1,326 @@
 import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Cafezista — Coffee from seed to table',
+  description:
+    'Specialty coffee roasted in Bermondsey, London. From our family farm in Cerrado Mineiro and the world\u2019s most expressive single origins. Subscribe & save 15%.',
+  alternates: { canonical: 'https://cafezista.co' },
+}
+
+const COUNTRY_CODES: Record<string, string> = {
+  Brazil: 'BR',
+  Ethiopia: 'ET',
+  Colombia: 'CO',
+  Panama: 'PA',
+  Kenya: 'KE',
+  Guatemala: 'GT',
+  Indonesia: 'ID',
+  'Costa Rica': 'CR',
+}
+
+const REGION_SHORT: Record<string, string> = {
+  'Cerrado Mineiro': 'Cerrado',
+  Yirgacheffe: 'Yirgacheffe',
+  Huila: 'Huila',
+  Boquete: 'Gesha',
+  Mantiqueira: 'Mantiqueira',
+}
 
 export default async function HomePage() {
   const supabase = await createClient()
 
-  const { data: products, error } = await supabase
+  const { data: products } = await supabase
     .from('products')
-    .select('id, slug, name, subtitle, origin_country, region, tasting_notes, bag_color, is_featured')
+    .select('id, slug, name, subtitle, origin_country, region, process, variety, tasting_notes, bag_color, brew_method, is_featured')
     .eq('is_active', true)
     .order('is_featured', { ascending: false })
+    .limit(4)
+
+  const productsJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: (products ?? []).map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: {
+        '@type': 'Product',
+        name: p.name,
+        description: p.subtitle,
+        category: 'Coffee',
+        brand: { '@type': 'Brand', name: 'Cafezista' },
+      },
+    })),
+  }
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      backgroundColor: '#f5efe4',
-      color: '#1a1410',
-      fontFamily: 'Georgia, serif',
-      padding: '4rem 2rem'
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productsJsonLd) }}
+      />
 
-        {/* Hero */}
-        <section style={{ marginBottom: '6rem', textAlign: 'center' }}>
-          <p style={{
-            textTransform: 'uppercase',
-            letterSpacing: '0.2em',
-            fontSize: '0.75rem',
-            color: '#b85c3c',
-            marginBottom: '1rem'
-          }}>
-            Cafezista — Bermondsey, London
-          </p>
-          <h1 style={{
-            fontSize: 'clamp(3rem, 8vw, 6rem)',
-            fontWeight: 400,
-            lineHeight: 1.1,
-            marginBottom: '1.5rem',
-            letterSpacing: '-0.02em'
-          }}>
-            Brazilian roots. <em style={{ color: '#b85c3c' }}>Global palate.</em>
-          </h1>
-          <p style={{
-            fontSize: '1.25rem',
-            color: '#4a5240',
-            maxWidth: '600px',
-            margin: '0 auto',
-            lineHeight: 1.6
-          }}>
-            Coffee from our family farm in Cerrado Mineiro,
-            and the world&apos;s most singular origins, roasted in London.
-          </p>
-        </section>
+      <nav className="site-nav" aria-label="Primary">
+        <a href="/" className="logo" aria-label="Cafezista home">
+          Cafezista<span>.</span>
+        </a>
+        <div className="nav-center">
+          <a href="/subscribe">Subscribe</a>
+          <a href="/shop">Shop</a>
+          <a href="/wholesale">Wholesale</a>
+          <a href="/story">Story</a>
+        </div>
+        <div className="nav-right">
+          <a href="/search" aria-label="Search">Search</a>
+          <a href="/account" aria-label="Login">Login</a>
+          <a href="/cart" aria-label="Cart">
+            Cart<span className="cart-badge">0</span>
+          </a>
+        </div>
+      </nav>
 
-        {/* Products grid */}
-        <section>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-            marginBottom: '2rem',
-            borderBottom: '1px solid #1a1410',
-            paddingBottom: '1rem'
-          }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 400 }}>
-              House favourites.
-            </h2>
-            <span style={{ fontSize: '0.875rem', color: '#4a5240' }}>
-              {products?.length ?? 0} coffees in stock
-            </span>
-          </div>
-
-          {error && (
-            <div style={{
-              padding: '1rem',
-              border: '1px solid #b85c3c',
-              color: '#b85c3c',
-              marginBottom: '2rem'
-            }}>
-              <strong>Database error:</strong> {error.message}
+      <main>
+        <section className="hero" aria-label="Hero">
+          <div>
+            <div className="hero-tag">From Brazil, with intent</div>
+            <h1>
+              Coffee from <em>seed</em> to table.
+            </h1>
+            <p className="hero-sub">
+              Cafezista was born in the coffee fields of Brazil and now calls London home.
+              Vinicius Oliveira grew up watching beans dry in the sun &mdash; today he sources
+              the world&apos;s most expressive coffees and brings them here, roasted with care.
+            </p>
+            <div className="hero-actions">
+              <a href="/shop" className="btn-primary">Shop the menu &rarr;</a>
+              <a href="/subscribe" className="btn-ghost">Subscribe &amp; save 15%</a>
             </div>
-          )}
+          </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '2rem'
-          }}>
-            {products?.map((product) => (
-              <article
-                key={product.id}
-                style={{
-                  background: 'white',
-                  padding: '2rem 1.5rem',
-                  border: '1px solid #c9b896',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1rem'
-                }}
-              >
-                {/* Visual bag mockup */}
-                <div style={{
-                  height: '200px',
-                  backgroundColor: bagColors[product.bag_color ?? 'cream'],
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'center',
-                  padding: '1rem',
-                  marginBottom: '0.5rem'
-                }}>
-                  <span style={{
-                    color: '#1a1410',
-                    fontSize: '0.7rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.15em',
-                    opacity: 0.6
-                  }}>
-                    Cafezista
-                  </span>
-                </div>
+          <div className="hero-visual" aria-hidden="true">
+            <div className="hero-bag">
+              <div className="hero-bag-label">
+                <span>Origin.</span>
+                <span>Cerrado</span>
+              </div>
+              <div className="hero-bag-brand">Cafezista.</div>
+              <div className="hero-bag-meta">
+                <div><span>Process</span><span>Natural</span></div>
+                <div><span>Variety</span><span>Yellow Bourbon</span></div>
+                <div><span>Altitude</span><span>1,200m</span></div>
+                <div><span>Notes</span><span>Cocoa, Hazelnut</span></div>
+              </div>
+            </div>
+          </div>
 
-                <div>
-                  <p style={{
-                    fontSize: '0.7rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.15em',
-                    color: '#b85c3c',
-                    marginBottom: '0.5rem'
-                  }}>
-                    {product.origin_country}
-                    {product.region && ` · ${product.region}`}
-                  </p>
-                  <h3 style={{
-                    fontSize: '1.5rem',
-                    fontWeight: 400,
-                    marginBottom: '0.25rem'
-                  }}>
-                    {product.name}
-                  </h3>
-                  <p style={{
-                    fontSize: '0.95rem',
-                    color: '#4a5240',
-                    fontStyle: 'italic'
-                  }}>
-                    {product.subtitle}
-                  </p>
-                </div>
-
-                {product.tasting_notes && (
-                  <p style={{ fontSize: '0.85rem', color: '#1a1410' }}>
-                    {product.tasting_notes.join(' · ')}
-                  </p>
-                )}
-
-                {product.is_featured && (
-                  <span style={{
-                    alignSelf: 'flex-start',
-                    fontSize: '0.7rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.15em',
-                    background: '#1a1410',
-                    color: '#f5efe4',
-                    padding: '0.4rem 0.8rem'
-                  }}>
-                    House espresso
-                  </span>
-                )}
-              </article>
-            ))}
+          <div className="hero-marquee" aria-hidden="true">
+            <div className="marquee-track">
+              <span>Direct trade</span>
+              <span>Single origin</span>
+              <span>Roasted in London</span>
+              <span>Subscribe &amp; save</span>
+              <span>Wholesale partners welcome</span>
+              <span>From seed to table</span>
+              <span>Direct trade</span>
+              <span>Single origin</span>
+              <span>Roasted in London</span>
+              <span>Subscribe &amp; save</span>
+              <span>Wholesale partners welcome</span>
+              <span>From seed to table</span>
+            </div>
           </div>
         </section>
 
-        <footer style={{
-          marginTop: '6rem',
-          paddingTop: '2rem',
-          borderTop: '1px solid #c9b896',
-          fontSize: '0.85rem',
-          color: '#4a5240',
-          textAlign: 'center'
-        }}>
-          © {new Date().getFullYear()} Cafezista. London.
-        </footer>
+        <section className="story" aria-labelledby="story-heading">
+          <div className="story-label">&mdash; Our story.</div>
+          <div className="story-content">
+            <h2 id="story-heading">
+              A family that grew up <em>between rows of coffee.</em>
+            </h2>
+            <p>
+              Vinicius Oliveira&apos;s earliest memories smell of fermenting cherries and freshly
+              turned soil. His family has farmed coffee in Brazil for generations &mdash; picking,
+              washing, drying, tasting &mdash; long before specialty became a word the industry could hold.
+            </p>
+            <p>
+              When he moved to London, Vinicius brought one promise with him: that every bag of
+              Cafezista would carry the same care his family taught him. From the seed in the
+              highlands to the cup on your table &mdash; nothing rushed, nothing wasted, nothing
+              without intention.
+            </p>
+            <p>
+              Today we travel the world&apos;s growing regions in search of true taste &mdash;
+              Ethiopia&apos;s wild ferments, Colombia&apos;s washed clarity, Brazil&apos;s syrupy depth
+              &mdash; and roast them in small batches at our London roastery.
+            </p>
+            <div className="story-signature">
+              Vinicius Oliveira
+              <small>Founder &middot; Cafezista</small>
+            </div>
+          </div>
+        </section>
 
-      </div>
-    </main>
+        <section className="products" aria-labelledby="products-heading">
+          <header className="products-header">
+            <h2 id="products-heading">House favourites.</h2>
+            <nav className="products-tabs" aria-label="Product categories">
+              <a href="/shop?type=beans" className="active">Beans.</a>
+              <a href="/shop?type=pods">Pods.</a>
+              <a href="/shop?type=merch">Merch.</a>
+            </nav>
+            <a href="/shop" className="view-all">View all &rarr;</a>
+          </header>
+
+          <div className="product-grid">
+            {(products ?? []).map((product) => {
+              const code = COUNTRY_CODES[product.origin_country] ?? ''
+              const regionShort = product.region
+                ? REGION_SHORT[product.region] ?? product.region
+                : product.origin_country
+              const bagClass = `bag-${product.bag_color ?? 'cream'}`
+              const brewLabel = product.brew_method
+                ? product.brew_method.charAt(0).toUpperCase() + product.brew_method.slice(1)
+                : 'Filter'
+
+              return (
+                <a key={product.id} href={`/shop/${product.slug}`} className="product-card">
+                  <div className="product-image">
+                    <div className="product-tags">
+                      <strong>Brew.</strong> {brewLabel}
+                    </div>
+                    {product.is_featured && (
+                      <div className="product-fav">House favourite.</div>
+                    )}
+                    <div className={`product-bag ${bagClass}`} aria-hidden="true">
+                      <div className="product-bag-label">
+                        <span>{regionShort}.</span>
+                        <span>{code}</span>
+                      </div>
+                      <div className="product-bag-brand">Cafezista.</div>
+                      <div className="product-bag-meta">
+                        <div>
+                          <span>Process</span>
+                          <span>{product.process ? capitalize(product.process) : '\u2014'}</span>
+                        </div>
+                        <div>
+                          <span>Variety</span>
+                          <span>{product.variety ?? '\u2014'}</span>
+                        </div>
+                        <div>
+                          <span>Notes</span>
+                          <span>
+                            {product.tasting_notes ? product.tasting_notes.slice(0, 2).join(', ') : '\u2014'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bookmark" aria-hidden="true"></div>
+                  </div>
+
+                  <div className="product-info">
+                    <h3>{product.name}.</h3>
+                    <div className="product-meta">
+                      <span className="product-meta-label">Tasting Notes.</span>
+                      <span className="product-meta-label right">Origin.</span>
+                      <span className="product-meta-value">
+                        {product.tasting_notes?.join(', ') ?? '\u2014'}
+                      </span>
+                      <span className="product-meta-value right">{product.origin_country}</span>
+                    </div>
+                    <div className="add-to-cart" role="button" tabIndex={0}>
+                      Add to cart <span className="plus">+</span>
+                    </div>
+                  </div>
+                </a>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="panels" aria-label="Featured links">
+          <a href="/shop" className="panel panel-menu">
+            <div className="panel-content">
+              <h3>Our menu.</h3>
+              <span className="panel-link">View shop &rarr;</span>
+            </div>
+          </a>
+          <a href="/story" className="panel panel-story">
+            <div className="panel-content">
+              <h3>Our story.</h3>
+              <span className="panel-link">Read more &rarr;</span>
+            </div>
+          </a>
+        </section>
+
+        <section className="wholesale" aria-labelledby="wholesale-heading">
+          <div>
+            <div className="wholesale-label">&mdash; For business.</div>
+            <h2 id="wholesale-heading">
+              Coffee for the spaces that <em>shape your day.</em>
+            </h2>
+          </div>
+          <div className="wholesale-content">
+            <p>
+              Whether you run a caf&eacute;, restaurant, hotel, or office, Cafezista partners with
+              you to source, roast, and deliver coffee that lifts every cup you serve. Training,
+              equipment guidance and ongoing support included.
+            </p>
+            <ul className="wholesale-features">
+              <li><span>Tiered wholesale pricing</span><span>From &pound;18/kg</span></li>
+              <li><span>Dedicated account manager</span><span>Always-on</span></li>
+              <li><span>Barista training included</span><span>On-site</span></li>
+              <li><span>Custom roast profiles</span><span>By request</span></li>
+            </ul>
+            <a href="/wholesale" className="btn-cream">Apply for wholesale &rarr;</a>
+          </div>
+        </section>
+      </main>
+
+      <footer className="site-footer">
+        <div className="footer-grid">
+          <div className="footer-brand">
+            <h3>Coffee, with <em>care.</em></h3>
+            <p>
+              Roasted in London. Sourced from the world. Served with the same attention
+              Vinicius&apos;s family taught him in the fields of Minas Gerais.
+            </p>
+          </div>
+          <div className="footer-col">
+            <h4>Shop</h4>
+            <ul>
+              <li><a href="/shop">All beans</a></li>
+              <li><a href="/subscribe">Subscriptions</a></li>
+              <li><a href="/shop?category=equipment">Equipment</a></li>
+              <li><a href="/shop?category=gift">Gift cards</a></li>
+            </ul>
+          </div>
+          <div className="footer-col">
+            <h4>Cafezista</h4>
+            <ul>
+              <li><a href="/story">Our story</a></li>
+              <li><a href="/wholesale">Wholesale</a></li>
+              <li><a href="/visit">Visit us</a></li>
+              <li><a href="/journal">Journal</a></li>
+            </ul>
+          </div>
+          <div className="footer-col">
+            <h4>Contact</h4>
+            <ul>
+              <li><a href="mailto:hello@cafezista.co">hello@cafezista.co</a></li>
+              <li><a href="https://instagram.com/cafezista" rel="noopener noreferrer" target="_blank">Instagram</a></li>
+              <li><a href="/help">Help &amp; FAQ</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <span>&copy; Cafezista {new Date().getFullYear()}. All rights reserved.</span>
+          <span>Made in London &middot; Grown in Brazil</span>
+        </div>
+      </footer>
+    </>
   )
 }
 
-const bagColors: Record<string, string> = {
-  rose: '#d4a290',
-  sand: '#c9b896',
-  terra: '#b85c3c',
-  moss: '#4a5240',
-  cream: '#f5efe4',
-  espresso: '#1a1410',
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
