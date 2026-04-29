@@ -306,7 +306,7 @@ export default async function HomePage() {
           <div className="footer-col">
             <h4>Contact</h4>
             <ul>
-              <li><a href="mailto:hello@cafezista.co">hello@cafezista.co</a></li>
+              <li><a href="mailto:Brew@cafezistacoffee.com">Brew@cafezistacoffee.com</a></li>
               <li><a href="https://instagram.com/cafezista" rel="noopener noreferrer" target="_blank">Instagram</a></li>
               <li><a href="/help">Help &amp; FAQ</a></li>
             </ul>

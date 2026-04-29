@@ -17,7 +17,7 @@ const inter = Inter({
   weight: ['300', '400', '500'],
 })
 
-const SITE_URL = 'https://cafezista.co'
+const SITE_URL = 'https://cafezistacoffee.com'
 const SITE_NAME = 'Cafezista'
 const SITE_DESCRIPTION =
   'Specialty coffee, roasted in London. Coffee from our family farm in Cerrado Mineiro and the world\u2019s most expressive single origins. Subscribe & save 15%.'
@@ -37,7 +37,6 @@ export const metadata: Metadata = {
     'coffee subscription',
     'wholesale coffee London',
     'Cerrado Mineiro',
-    'Bermondsey coffee',
     'direct trade coffee',
     'Cafezista',
   ],
@@ -85,14 +84,7 @@ const organizationJsonLd = {
   url: SITE_URL,
   logo: SITE_URL + '/logo.png',
   description: SITE_DESCRIPTION,
-  email: 'hello@cafezista.co',
-  address: {
-    '@type': 'PostalAddress',
-    streetAddress: '42 Bermondsey Street',
-    addressLocality: 'London',
-    postalCode: 'SE1 3UD',
-    addressCountry: 'GB',
-  },
+  email: 'Brew@cafezistacoffee.com',
   sameAs: ['https://instagram.com/cafezista'],
 }
 
